@@ -109,6 +109,16 @@ def get_image(img_id):
     with open(loc, 'r') as fd:
         return fd.read()
 
+def get_volume_from_image(image, prefix=''):
+    img = image.provider(settings.settings())
+    vol = image.volume_provider(settings.settings())
+
+    try:
+        src_img = img.get(image)
+        return vol.copyFrom(src_img, prefix=prefix)
+    except:
+        return ''
+
 @app.route(api_url + '/machine', methods=['POST'])
 @auth.login_required
 def post_machine():
@@ -119,6 +129,7 @@ def post_machine():
         'size': '',
         'type': '',
         'image': '',
+        'cdrom': '',
         }
     if 'size' in request.json:
        res['size'] = request.json['size']
@@ -126,8 +137,12 @@ def post_machine():
        res['type'] = request.json['type']
     if 'image' in request.json:
        res['image'] = request.json['image']
+    if 'cdrom' in request.json:
+       res['cdrom'] = request.json['cdrom']
 
     inf = infra.provider(settings.settings())
+
+    volume = get_volume_from_image(res['image'], uuid.uuid4())
 
     #_db = db.connect(settings.settings())
     #res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())

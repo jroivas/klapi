@@ -14,3 +14,7 @@ Recommended way is to use virtualenv:
     flask/bin/pip install flask-httpauth
     flask/bin/pip install libvirt-python
 
+
+## Add users
+
+Start the application and setup first user.
