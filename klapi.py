@@ -8,6 +8,7 @@ from flask.ext.httpauth import HTTPBasicAuth
 import settings
 from db import db
 from images import images
+from infra import infra
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -125,6 +126,8 @@ def post_machine():
        res['type'] = request.json['type']
     if 'image' in request.json:
        res['image'] = request.json['image']
+
+    inf = infra.provider(settings.settings())
 
     #_db = db.connect(settings.settings())
     #res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
