@@ -1,3 +1,7 @@
+import os
+import shutil
+import thread
+
 class ImageProvider(object):
     def __init__(self):
         pass
@@ -106,15 +110,99 @@ class DummyImageProvider(ImageProvider):
         ['test', 'dummy', 'test4']
         >>> p.get('test4')
         'http://location'
+        >>> p.add('test4', 'http://location') # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        ValueError: Image already exists: test4
         """
         if name in self.images:
             raise ValueError('Image already exists: %s' % (name))
 
         self.images[name] = url
 
+def thread_downloader(url, dest):
+    os.chdir(dest)
+    # FIXME Depends on wget
+    os.system('wget -q %s')
+
+class LocalImageProvider(ImageProvider):
+    def __init__(self, directory=''):
+        self.dir = directory
+        os.makedirs(self.dir, 0777)
+
+    def update_db(self):
+        self.images = {}
+        for item in os.listdir(self.dir):
+            try:
+                base = os.path.basename(item[0:item.index('.')])
+            except:
+                base = item
+            self.images[base] = item
+
+    def list(self):
+        self.update_db()
+        return self.images.keys()
+
+    def clone(self, name):
+        img = self.get(name)
+
+        index = 1
+        new_name = name + 'clone%s' % (index)
+        while new_name in self.images:
+            index += 1
+            new_name = name + 'clone%s' % (index)
+
+        try:
+            base = img[0:img.index('.')]
+            ext = img[img.index('.'):]
+        except:
+            base = img
+            ext = ''
+
+        img_name = base + 'clone%s' % (index) + ext
+        while os.path.exists(self.dir + '/' + img_name):
+            index += 1
+            img_name = base + 'clone%s' % (index) + ext
+
+        shutil.copyfile(self.dir + '/' + img, self.dir + '/' + img_name)
+
+        return new_name
+
+    def delete(self, name):
+        self.update_db()
+
+        for item in self.images:
+            if item == name:
+                img = self.get(name)
+                os.remove(self.dir + '/' + img)
+
+        self.update_db()
+
+    def add(self, url):
+        if url.startswith('http') or url.startswith('ftp'):
+            thread.start_new_thread(thread_downloader, (url, self.dir))
+            return
+        elif url.starstwith('file://'):
+            url = url[7:]
+
+        if os.path.exists(url):
+            img_name = os.path.basename(url)
+            if os.path.exists(self.dir + '/' + img_name):
+                raise ValueError('Image already exists: %s' % (img_name))
+
+            shutil.copyfile(url, self.dir + '/' + img_name)
+
+            return
+
+        raise ValueError('Image not found: %s' % (url))
+
 def provider(sets):
     image = sets.get('image', None)
+
     if image is None or image == 'dummy':
         return DummyImageProvider()
+    if image == 'local':
+        image_storage = sets.get('image_storage', '/tmp')
+        return LocalImageProvider(image_storage)
 
     return None
