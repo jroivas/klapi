@@ -25,6 +25,7 @@ def unauthorized():
 def before_request():
     _db = db.connect(settings.settings())
     db.create(_db, 'machines', ['id', 'name', 'address', 'owner'])
+    db.create(_db, 'images', ['name', 'url', 'type'])
     db.create(_db, 'users', ['name', 'pass', 'apikey'])
 
 @app.teardown_request
@@ -61,10 +62,39 @@ def klapi_version():
 
 @app.route(api_url + '/machine', methods=['GET'])
 @auth.login_required
-def get_machines():
+def get_machine():
     _db = db.connect(settings.settings())
     res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
     return jsonify({'machines': res})
+
+@app.route(api_url + '/image', methods=['GET'])
+@auth.login_required
+def get_image():
+    _db = db.connect(settings.settings())
+    res = db.select(_db, 'images')
+    return jsonify({'images': res})
+
+@app.route(api_url + '/machine', methods=['POST'])
+@auth.login_required
+def post_machine():
+    if not request.json:
+        abort(400)
+
+    res = {
+        'size': '',
+        'type': '',
+        'image': '',
+        }
+    if 'size' in request.json:
+       res['size'] = request.json['size']
+    if 'type' in request.json:
+       res['type'] = request.json['type']
+    if 'image' in request.json:
+       res['image'] = request.json['image']
+
+    #_db = db.connect(settings.settings())
+    #res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
+    #return jsonify({'machines': res})
 
 """
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['GET'])
