@@ -7,6 +7,7 @@ from flask import url_for
 from flask.ext.httpauth import HTTPBasicAuth
 import settings
 from db import db
+from images import images
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -62,17 +63,50 @@ def klapi_version():
 
 @app.route(api_url + '/machine', methods=['GET'])
 @auth.login_required
-def get_machine():
+def machine():
     _db = db.connect(settings.settings())
     res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
     return jsonify({'machines': res})
 
 @app.route(api_url + '/image', methods=['GET'])
 @auth.login_required
-def get_image():
-    _db = db.connect(settings.settings())
-    res = db.select(_db, 'images')
-    return jsonify({'images': res})
+def image():
+    img = images.provider(settings.settings())
+    return jsonify({'images': img.list()})
+
+@app.route(api_url + '/image/<string:img_id>', methods=['GET'])
+@auth.login_required
+def image_id(img_id):
+    img = images.provider(settings.settings())
+    loc = img.get(img_id)
+    if loc is None:
+        abort(404)
+
+    res = {
+        'image': img_id,
+        'location': loc,
+        'uri': url_for('get_image', img_id=img_id, _external=True),
+    }
+
+    if loc.lower().endswith('.img'):
+        res['type'] = 'img'
+    elif loc.lower().endswith('.iso'):
+        res['type'] = 'iso'
+    elif loc.lower().endswith('.ext2'):
+        res['type'] = 'ext2'
+
+    return jsonify(res)
+
+@app.route(api_url + '/image/get/<string:img_id>', methods=['GET'])
+@auth.login_required
+def get_image(img_id):
+    img = images.provider(settings.settings())
+    loc = img.get(img_id)
+    if loc is None:
+        abort(404)
+
+    with open(loc, 'r') as fd:
+        return fd.read()
 
 @app.route(api_url + '/machine', methods=['POST'])
 @auth.login_required
