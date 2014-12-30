@@ -123,50 +123,49 @@ class DummyImageProvider(ImageProvider):
 def thread_downloader(url, dest):
     os.chdir(dest)
     # FIXME Depends on wget
-    os.system('wget -q %s')
+    print os.system('wget -q %s' % (url))
 
 class LocalImageProvider(ImageProvider):
     def __init__(self, directory=''):
         self.dir = directory
-        os.makedirs(self.dir, 0777)
+        try:
+            os.makedirs(self.dir, 0777)
+        except:
+            pass
 
     def update_db(self):
         self.images = {}
         for item in os.listdir(self.dir):
-            try:
-                base = os.path.basename(item[0:item.index('.')])
-            except:
-                base = item
+            (base, ext) = os.path.splitext(item)
+            base = os.path.basename(base)
             self.images[base] = item
 
     def list(self):
         self.update_db()
         return self.images.keys()
 
+    def get(self, name):
+        self.update_db()
+        img = self.images.get(name, None)
+        if img is None:
+            return None
+        return self.dir + '/' + img
+
     def clone(self, name):
         img = self.get(name)
 
+        (base, ext) = os.path.splitext(img)
+        base = os.path.basename(base)
+
         index = 1
-        new_name = name + 'clone%s' % (index)
-        while new_name in self.images:
-            index += 1
-            new_name = name + 'clone%s' % (index)
-
-        try:
-            base = img[0:img.index('.')]
-            ext = img[img.index('.'):]
-        except:
-            base = img
-            ext = ''
-
-        img_name = base + 'clone%s' % (index) + ext
+        img_name = 'clone%s_%s%s' % (index, base, ext)
         while os.path.exists(self.dir + '/' + img_name):
             index += 1
-            img_name = base + 'clone%s' % (index) + ext
+            img_name = 'clone%s_%s%s' % (index, base, ext)
 
-        shutil.copyfile(self.dir + '/' + img, self.dir + '/' + img_name)
+        shutil.copyfile(img, self.dir + '/' + img_name)
 
-        return new_name
+        return 'clone%s_%s' % (index, base)
 
     def delete(self, name):
         self.update_db()
@@ -174,13 +173,16 @@ class LocalImageProvider(ImageProvider):
         for item in self.images:
             if item == name:
                 img = self.get(name)
-                os.remove(self.dir + '/' + img)
+                os.remove(img)
 
         self.update_db()
 
     def add(self, url):
         if url.startswith('http') or url.startswith('ftp'):
-            thread.start_new_thread(thread_downloader, (url, self.dir))
+            print ("Downloading...")
+            #thread.start_new_thread(thread_downloader, (url, self.dir))
+            # TODO backend for downloading...
+            thread_downloader(url, self.dir)
             return
         elif url.starstwith('file://'):
             url = url[7:]

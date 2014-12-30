@@ -1,6 +1,6 @@
 def settings():
     return {
-        'image': 'dummy',
+        'image': 'local',
         'image_storage': '/store/cloud/images/iso',
         'db': 'sqlite3',
         'db_table': 'klapi.db'
