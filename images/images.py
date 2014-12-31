@@ -33,7 +33,7 @@ def provider(sets):
     return None
 
 def volume_provider(sets):
-    vold = sets.get('volume', None)
+    vol = sets.get('volume', None)
 
     if vol is None:
         return None

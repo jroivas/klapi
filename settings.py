@@ -4,6 +4,7 @@ def settings():
         'image_storage': '/store/cloud/images/iso',
         'volume': 'local',
         'volume_storage': '/store/cloud/images/volume',
+        'volume_storage_name': 'klapi_storage',
         'infra': 'libvirt',
         'infra_connection': 'qemu:///system',
         'db': 'sqlite3',

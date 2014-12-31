@@ -5,7 +5,7 @@ class Virsh(object):
     def __init__(self, connection):
         self.connection = connection
         self.conn = None
-        self.connect()
+        self.connect() # FIXME Do we want autoconnect?
 
     def connect(self):
         try:
@@ -30,6 +30,18 @@ class Virsh(object):
     <os>
         <type arch='%(arch)s'>hvm</type>
     </os>
+    <devices>
+        <input type='mouse' bus='ps2'/>
+        <graphics type='vnc' port='-1' autoport='yes' listen='0.0.0.0'>
+            <listen type='address' address='0.0.0.0'/>
+        </graphics>
+        <console type='pty'/>
+        <video>
+          <model type='cirrus'/>
+        </video>
+        <memballoon model='virtio'/>
+        %(extradevices)s
+    </devices>
     %(extra)s
 </domain>""" % data
 
@@ -40,7 +52,20 @@ class Virsh(object):
             'memory': 256 * 1024,
             'cpus': 1,
             'arch': 'x86_64',
+            'extradevices': '',
             'extra': ''
+        }
+        return self.setupDomain(data)
+
+    def customDomain(self, name, cpus, mem, arch='x86_64', hypervisor='kvm', extradevices='', extra=''):
+        data = {
+            'name': name,
+            'hypervisor': hypervisor,
+            'memory': mem,
+            'cpus': cpus,
+            'arch': arch,
+            'extradevices': extradevices,
+            'extra': extra
         }
         return self.setupDomain(data)
 
@@ -60,25 +85,25 @@ class Virsh(object):
     </disk>
     """ % data
 
-    def fileStorage(self, location, format='qcow2'):
+    def fileStorage(self, location, format='qcow2', letter='a'):
         return self.setupStorage({
             'type': 'file',
             'device': 'disk',
             'driver': 'qemu',
             'driver_type': format,
-            'target': 'vda',
+            'target': 'vd' + letter,
             'target_bus': 'virtio',
             'source': location,
             'extra': ''
             });
 
-    def cdromStorage(self, location):
+    def cdromStorage(self, location, letter='a'):
         return self.setupStorage({
             'type': 'file',
             'device': 'cdrom',
             'driver': 'qemu',
             'driver_type': 'raw',
-            'target': 'hda',
+            'target': 'hd' + letter,
             'target_bus': 'ide',
             'source': location,
             'extra': '<readonly/>'
@@ -96,7 +121,7 @@ class Virsh(object):
     </permissions>
   </target>
 </volume>
-""" % (os.path.basename(location), size, size, format)
+""" % (os.path.basename(location), size, 0, format)
 
     def pool(self, name):
         return self.conn.storagePoolLookupByName(name)
@@ -119,13 +144,13 @@ class Virsh(object):
         'extra': ''
       }
 
-    def definePoolDir(self, name, location):
-        return self.definePool(name, location)
+    #def definePoolDir(self, name, location):
+    #    return self.definePool(name, location)
 
     def createPool(self, xml):
         obj = self.conn.storagePoolDefineXML(xml)
         obj.create()
         return obj
 
-    def createVolume(self, xml):
-        return self.conn.createXML(xml)
+    def createVolume(self, pool, xml):
+        return pool.createXML(xml)

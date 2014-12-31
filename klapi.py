@@ -9,6 +9,7 @@ import settings
 from db import db
 from images import images
 from infra import infra
+import uuid
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -110,12 +111,20 @@ def get_image(img_id):
         return fd.read()
 
 def get_volume_from_image(image, prefix=''):
-    img = image.provider(settings.settings())
-    vol = image.volume_provider(settings.settings())
+    img = images.provider(settings.settings())
+    vol = images.volume_provider(settings.settings())
 
     try:
         src_img = img.get(image)
         return vol.copyFrom(src_img, prefix=prefix)
+    except Exception as e:
+        print ('ERROR: %s' % (e))
+        return ''
+
+def get_cdrom_image(image):
+    img = images.provider(settings.settings())
+    try:
+        return img.get(image)
     except:
         return ''
 
@@ -126,23 +135,56 @@ def post_machine():
         abort(400)
 
     res = {
-        'size': '',
-        'type': '',
+        'memory': 256 * 1024, # FIXME some reasonable default
+        'cpus': 1,
+        'name': str(uuid.uuid4()),
+        'net': '',
         'image': '',
         'cdrom': '',
         }
-    if 'size' in request.json:
-       res['size'] = request.json['size']
-    if 'type' in request.json:
-       res['type'] = request.json['type']
+    if 'mem' in request.json:
+       res['memory'] = request.json['mem']
+    if 'memory' in request.json:
+       res['memory'] = request.json['mem']
+    if 'mem' in request.json:
+       res['memory'] = request.json['mem']
+    if 'cpus' in request.json:
+        try:
+           res['cpus'] = int(request.json['cpus'])
+        except:
+            pass
     if 'image' in request.json:
        res['image'] = request.json['image']
     if 'cdrom' in request.json:
        res['cdrom'] = request.json['cdrom']
+    if 'name' in request.json:
+       res['name'] = request.json['name']
 
     inf = infra.provider(settings.settings())
 
-    volume = get_volume_from_image(res['image'], uuid.uuid4())
+    extras = []
+
+    volume = get_volume_from_image(res['image'], str(uuid.uuid4()) + '_')
+    if volume:
+        extras.append(inf.fileStorage(volume))
+
+    cdrom = get_cdrom_image(res['cdrom'])
+    if cdrom:
+        extras.append(inf.cdromStorage(cdrom))
+
+    print (extras)
+    extradevices = '\n'.join(extras)
+
+    dom_xml = inf.customDomain(res['name'], res['cpus'], res['memory'], extradevices=extradevices)
+    print (dom_xml)
+    dom = inf.createDomain(dom_xml)
+
+    print (dom)
+    print dir(dom)
+    res = dom.create()
+    print res
+
+    return dom_xml
 
     #_db = db.connect(settings.settings())
     #res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
