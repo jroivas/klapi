@@ -63,13 +63,41 @@ def klapi():
 def klapi_version():
     return jsonify({api_prefix + '/' + api_version: ['ids']})
 
-
 @app.route(api_url + '/machine', methods=['GET'])
 @auth.login_required
 def machine():
     _db = db.connect(settings.settings())
     res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
-    return jsonify({'machines': res})
+    items = [x[0] for x in res]
+    return jsonify({'machines': items})
+
+@app.route(api_url + '/machine/<string:machine_id>', methods=['GET'])
+@auth.login_required
+def machine_id(machine_id):
+    _db = db.connect(settings.settings())
+    res = db.select(_db, 'machines', where='id=\'%s\'' % machine_id)
+    if not res:
+        abort(400)
+
+    res = res[0]
+    inf = infra.provider(settings.settings())
+    dom = inf.getDomain(res[0])
+    if not dom or dom is None:
+        abort(400)
+
+    return jsonify({
+        'id': res[0],
+        'name': res[1],
+        'address': res[2],
+        'active': dom.isActive(),
+        'max-memory': dom.maxMemory(),
+        'max-cpus': dom.maxVcpus(),
+        'memory-stats': dom.memoryStats(),
+        #'info': dom.info(),
+        #'cpus': dom.vcpus(),
+        #'state': '%s' % dom.state(),
+        'owner': res[3]
+    })
 
 @app.route(api_url + '/image', methods=['GET'])
 @auth.login_required
@@ -209,13 +237,13 @@ def post_machine():
     extradevices = '\n'.join(extras)
 
     dom_xml = inf.customDomain(res['name'], res['cpus'], res['memory'], extradevices=extradevices, extra=extra)
-    print (dom_xml)
     dom = inf.createDomain(dom_xml)
 
-    print (dom)
-    print dir(dom)
     dom_res = dom.create()
-    print dom_res
+
+    _db = db.connect(settings.settings())
+    # FIXME Put more accurate info
+    db.insert(_db, 'machines', [res['name'], res['name'], '', auth.username()])
 
     return jsonify({
         'id': res['name']
