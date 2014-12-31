@@ -86,29 +86,46 @@ class Virsh(object):
     </disk>
     """ % data
 
-    def fileStorage(self, location, format='qcow2', letter='a'):
-        return self.setupStorage({
+    def fileStorage(self, location, format='qcow2', letter='', virtio=True):
+        data = {
             'type': 'file',
             'device': 'disk',
             'driver': 'qemu',
             'driver_type': format,
-            'target': 'vd' + letter,
             'target_bus': 'virtio',
             'source': location,
             'extra': ''
-            });
+            }
 
-    def cdromStorage(self, location, letter='a'):
-        return self.setupStorage({
+        if virtio:
+            target_type = 'vd'
+        else:
+            target_type = 'hd'
+
+        if not letter:
+            data['target'] = target_type + self.drive_lettes.pop(0)
+        else:
+            data['target'] = target_type + letter
+
+        return self.setupStorage(data)
+
+    def cdromStorage(self, location, letter=''):
+        data = {
             'type': 'file',
             'device': 'cdrom',
             'driver': 'qemu',
             'driver_type': 'raw',
-            'target': 'hd' + letter,
             'target_bus': 'ide',
             'source': location,
             'extra': '<readonly/>'
-            });
+            }
+
+        if not letter:
+            data['target'] = 'hd' + self.drive_lettes.pop(0)
+        else:
+            data['target'] = 'hd' + letter
+
+        return self.setupStorage(data)
 
     def volume(self, location, size, format='qcow2'):
         return """<volume type='file'>
