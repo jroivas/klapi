@@ -13,6 +13,9 @@ class Image(config.Image):
         #   os.unlink(self.temp_init)
         pass
 
+    def base(self):
+        return 'Ubuntu cloud image'
+
     @classmethod
     def match(self, name):
         if 'trusty-server-cloudimg-amd64-disk1.img' in name:
@@ -46,6 +49,7 @@ ssh_pwauth: True
     def extraDeviceConfig(self, infra):
         self._initCloud()
         if self.temp_init:
-           return infra.fileStorage(self.temp_init)
+           return infra.fileStorage(self.temp_init, format='raw', virtio=False)
+           #return infra.cdromStorage(self.temp_init)
 
         return ""

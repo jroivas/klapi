@@ -10,6 +10,7 @@ from db import db
 from images import images
 from infra import infra
 import uuid
+import os
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -128,6 +129,14 @@ def get_cdrom_image(image):
     except:
         return ''
 
+def image_extra_config(name, init_name):
+    loader = images.config.ImageConfig()
+    image_class = loader.search(name)
+    if image_class is None:
+        return None
+
+    return image_class(init_name)
+
 @app.route(api_url + '/machine', methods=['POST'])
 @auth.login_required
 def post_machine():
@@ -166,6 +175,7 @@ def post_machine():
     inf = infra.provider(settings.settings())
 
     extras = []
+    extra = ''
 
     volume = get_volume_from_image(res['image'], str(uuid.uuid4()) + '_', resize=res['size'])
     if volume:
@@ -175,19 +185,37 @@ def post_machine():
     if cdrom:
         extras.append(inf.cdromStorage(cdrom))
 
+    image_extra_loader = None
+    if volume or cdrom:
+        item = cdrom
+        if volume:
+            item = volume
+
+        image_extra_loader = image_extra_config(os.path.basename(item), res['name'])
+
+    if image_extra_loader is not None:
+        print ('Found image loader: %s' % (image_extra_loader.base()))
+        extra_device = image_extra_loader.extraDeviceConfig(inf)
+        if extra_device:
+            extras.append(extra_device)
+        image_extra = image_extra_loader.extra()
+        if image_extra:
+            extra += image_extra
+        # TODO: Support other features
+
     extras.append(inf.defineNetwork())
 
     print (extras)
     extradevices = '\n'.join(extras)
 
-    dom_xml = inf.customDomain(res['name'], res['cpus'], res['memory'], extradevices=extradevices)
+    dom_xml = inf.customDomain(res['name'], res['cpus'], res['memory'], extradevices=extradevices, extra=extra)
     print (dom_xml)
     dom = inf.createDomain(dom_xml)
 
     print (dom)
     print dir(dom)
-    res = dom.create()
-    print res
+    dom_res = dom.create()
+    print dom_res
 
     return jsonify({
         'id': res['name']

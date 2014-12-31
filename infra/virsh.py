@@ -1,5 +1,6 @@
 import libvirt
 import os
+import string
 
 class Virsh(object):
     def __init__(self, connection):
@@ -92,18 +93,19 @@ class Virsh(object):
             'device': 'disk',
             'driver': 'qemu',
             'driver_type': format,
-            'target_bus': 'virtio',
             'source': location,
             'extra': ''
             }
 
         if virtio:
             target_type = 'vd'
+            data['target_bus'] = 'virtio'
         else:
             target_type = 'hd'
+            data['target_bus'] = 'ide'
 
         if not letter:
-            data['target'] = target_type + self.drive_lettes.pop(0)
+            data['target'] = target_type + self.drive_letters.pop(0)
         else:
             data['target'] = target_type + letter
 
@@ -121,7 +123,7 @@ class Virsh(object):
             }
 
         if not letter:
-            data['target'] = 'hd' + self.drive_lettes.pop(0)
+            data['target'] = 'hd' + self.drive_letters.pop(0)
         else:
             data['target'] = 'hd' + letter
 

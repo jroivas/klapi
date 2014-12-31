@@ -1,26 +1,29 @@
-import os
 import importlib
+import os
 import sys
 
 class Image(object):
     def __init__(self, name):
         self.name = name
 
+    def base(self):
+        return ''
+
     @classmethod
     def match(self, name):
         return False
 
     def extraDeviceConfig(self):
-        return ""
+        return ''
 
     def extra(self):
-        return ""
+        return ''
 
     def kernelConfig(self):
-        return ""
+        return ''
 
     def bootOrder(self):
-        return ""
+        return ''
 
 class ImageConfig(object):
     def __init__(self):
@@ -54,3 +57,11 @@ class ImageConfig(object):
             if item in self.modules:
                 continue
             self._load(item)
+
+    def search(self, name):
+        self.loadAll()
+        for item in self.items.values():
+            if item.match(name):
+                return item
+
+        return None
