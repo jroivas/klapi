@@ -1,4 +1,5 @@
 import libvirt
+import os
 
 class Virsh(object):
     def __init__(self, connection):
@@ -82,3 +83,49 @@ class Virsh(object):
             'source': location,
             'extra': '<readonly/>'
             });
+
+    def volume(self, location, size, format='qcow2'):
+        return """<volume type='file'>
+  <name>%s</name>
+  <capacity unit='bytes'>%s</capacity>
+  <allocation unit='bytes'>%s</allocation>
+  <target>
+    <format type='%s'/>
+    <permissions>
+      <mode>0644</mode>
+    </permissions>
+  </target>
+</volume>
+""" % (os.path.basename(location), size, size, format)
+
+    def pool(self, name):
+        return self.conn.storagePoolLookupByName(name)
+
+    def definePool(self, name, location, pool_type='dir'):
+        return """<pool type='%(type)s'>
+  <name>%(name)s</name>
+  <target>
+    <path>%(location)s</path>
+    <permissions>
+      <mode>0755</mode>
+    </permissions>
+  </target>
+  %(extra)s
+</pool>
+""" % {
+        'type': pool_type,
+        'name': name,
+        'location': location,
+        'extra': ''
+      }
+
+    def definePoolDir(self, name, location):
+        return self.definePool(name, location)
+
+    def createPool(self, xml):
+        obj = self.conn.storagePoolDefineXML(xml)
+        obj.create()
+        return obj
+
+    def createVolume(self, xml):
+        return self.conn.createXML(xml)
