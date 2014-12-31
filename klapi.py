@@ -110,13 +110,13 @@ def get_image(img_id):
     with open(loc, 'r') as fd:
         return fd.read()
 
-def get_volume_from_image(image, prefix=''):
+def get_volume_from_image(image, prefix='', resize=''):
     img = images.provider(settings.settings())
     vol = images.volume_provider(settings.settings())
 
     try:
         src_img = img.get(image)
-        return vol.copyFrom(src_img, prefix=prefix)
+        return vol.copyFrom(src_img, prefix=prefix, resize=resize)
     except Exception as e:
         print ('ERROR: %s' % (e))
         return ''
@@ -140,6 +140,7 @@ def post_machine():
         'name': str(uuid.uuid4()),
         'net': '',
         'image': '',
+        'size': '',
         'cdrom': '',
         }
     if 'mem' in request.json:
@@ -148,6 +149,8 @@ def post_machine():
        res['memory'] = request.json['mem']
     if 'mem' in request.json:
        res['memory'] = request.json['mem']
+    if 'size' in request.json:
+       res['size'] = request.json['size']
     if 'cpus' in request.json:
         try:
            res['cpus'] = int(request.json['cpus'])
@@ -164,13 +167,15 @@ def post_machine():
 
     extras = []
 
-    volume = get_volume_from_image(res['image'], str(uuid.uuid4()) + '_')
+    volume = get_volume_from_image(res['image'], str(uuid.uuid4()) + '_', resize=res['size'])
     if volume:
         extras.append(inf.fileStorage(volume))
 
     cdrom = get_cdrom_image(res['cdrom'])
     if cdrom:
         extras.append(inf.cdromStorage(cdrom))
+
+    extras.append(inf.defineNetwork())
 
     print (extras)
     extradevices = '\n'.join(extras)
@@ -184,7 +189,9 @@ def post_machine():
     res = dom.create()
     print res
 
-    return dom_xml
+    return jsonify({
+        'id': res['name']
+    })
 
     #_db = db.connect(settings.settings())
     #res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())

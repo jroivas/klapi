@@ -12,7 +12,7 @@ class LocalVolumeStorage(object):
     def list(self):
         return os.listdir(self.location)
 
-    def copyFrom(self, source, prefix='', force=False):
+    def copyFrom(self, source, prefix='', resize='', force=False):
         if not os.path.exists(source):
             raise ValueError('Source image does not exists: %s' % (source))
 
@@ -21,8 +21,29 @@ class LocalVolumeStorage(object):
         if not force and os.path.exists(destname):
             raise ValueError('Destination already exists: %s' % destname)
 
-        shutil.copyfile(source, destname)
+        # FIXME run these in backend
+        os.system('qemu-img convert -O qcow2 "%s" "%s"' % (source, destname))
+
+        if resize:
+            os.system('qemu-img resize "%s" %s' % (destname, resize))
+
+        """
+        os.system('qemu-img convert -O qcow2 "%s" "%s"' % (source, destname + '.orig'))
+
+        if resize:
+            os.system('qemu-img resize "%s" %s' % (destname + '.orig', resize))
+
+        os.system('qemu-img create -f qcow2 -b "%s" "%s"' % (destname + '.orig', destname))
+        """
+
+        #shutil.copyfile(source, destname)
         return destname
+
+    def customize(self, image, source):
+        if not os.path.exists(source + '.sh'):
+            return False
+
+        return True
 
     def get(self, name):
         d = self.list()

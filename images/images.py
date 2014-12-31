@@ -17,6 +17,8 @@ class ImageProvider(object):
     def add(self, name, url):
         pass
 
+from config import config
+
 import dummy
 import local
 import storage

@@ -6,6 +6,7 @@ class Virsh(object):
         self.connection = connection
         self.conn = None
         self.connect() # FIXME Do we want autoconnect?
+        self.drive_letters = list(string.lowercase)
 
     def connect(self):
         try:
@@ -154,3 +155,23 @@ class Virsh(object):
 
     def createVolume(self, pool, xml):
         return pool.createXML(xml)
+
+    def defineNetwork(self, network='default', driver='virtio', mac='', pci_address=''):
+        if mac:
+            mac_str = "<mac address='%s'/>" % (mac)
+        else:
+            mac_str = ''
+
+        if pci_address:
+            pci_str = "<address type='pci' %s/>" % (pci_address)
+        else:
+            pci_str = ''
+
+        return """
+    <interface type='network'>
+      <source network='%s'/>
+      %s
+      <model type='%s'/>
+      %s
+    </interface>
+""" % (network, mac_str, driver, pci_str)

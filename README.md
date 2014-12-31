@@ -15,6 +15,11 @@ Recommended way is to use virtualenv:
     flask/bin/pip install libvirt-python
 
 
+Tools required on host system:
+
+ - qemu-img
+
+
 ## Add users
 
 Start the application and setup first user.
