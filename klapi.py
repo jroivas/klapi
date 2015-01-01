@@ -69,7 +69,16 @@ def machine():
     _db = db.connect(settings.settings())
     res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
     items = [x[0] for x in res]
-    return jsonify({'machines': items})
+    return jsonify(
+    {
+        'machines': [
+
+            {
+            'uri': url_for('machine_id', machine_id=x, _external=True),
+            'id': x
+            }
+            for x in items]
+    })
 
 @app.route(api_url + '/machine/<string:machine_id>', methods=['GET'])
 @auth.login_required
@@ -85,19 +94,40 @@ def machine_id(machine_id):
     if not dom or dom is None:
         abort(400)
 
-    return jsonify({
+    data = {
         'id': res[0],
         'name': res[1],
         'address': res[2],
         'active': dom.isActive(),
         'max-memory': dom.maxMemory(),
-        'max-cpus': dom.maxVcpus(),
-        'memory-stats': dom.memoryStats(),
+        #'max-cpus': dom.maxVcpus(),
+        #'memory-stats': dom.memoryStats(),
         #'info': dom.info(),
         #'cpus': dom.vcpus(),
         #'state': '%s' % dom.state(),
+        'state': '%s' % dir(dom),
         'owner': res[3]
-    })
+    }
+    if dom.isActive():
+        data['max-cpus'] = dom.maxVcpus()
+        data['memory-stats'] = dom.memoryStats()
+    return jsonify(data)
+
+@app.route(api_url + '/machine/<string:machine_id>', methods=['DELETE'])
+@auth.login_required
+def machine_del(machine_id):
+    _db = db.connect(settings.settings())
+    res = db.select(_db, 'machines', where='id=\'%s\'' % machine_id)
+    if not res:
+        abort(400)
+
+    res = res[0]
+    inf = infra.provider(settings.settings())
+    dom = inf.getDomain(res[0])
+    if not dom or dom is None:
+        abort(400)
+
+    dom.destroy()
 
 @app.route(api_url + '/image', methods=['GET'])
 @auth.login_required
