@@ -116,3 +116,11 @@ To list available base images, one of these is needed to setup a machine properl
 If everything is in place you should be now able to create new machine:
 
     curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X POST -d '{"image": "trusty-server-cloudimg-amd64-disk1"}' http://localhost:5050/klapi/v0.1/machine
+
+You will be given information to access the machine. To get more information about it (replace ID at the end with given one):
+
+    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -X GET http://localhost:5050/klapi/v0.1/machine/8f2f1ce0-cde0-4e9a-9561-cac6c2ada3f4
+
+Destroying the machine is easy as:
+
+    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -X DELETE http://localhost:5050/klapi/v0.1/machine/8f2f1ce0-cde0-4e9a-9561-cac6c2ada3f4
