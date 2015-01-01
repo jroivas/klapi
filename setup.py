@@ -45,6 +45,7 @@ def define_network():
         return True
 
     if 'network_ip' not in sets:
+        print ('ERROR: No IP for network')
         return False
 
     net_xml = inf.defineNatNetwork(sets['network_name'], sets['network_ip'])
@@ -53,6 +54,7 @@ def define_network():
         network_info(net)
         return True
 
+    print ('Failed to setup network: %s' % (sets['network_name']))
     return False
 
 def usage(name):
