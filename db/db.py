@@ -26,10 +26,10 @@ def select(db, table, items='', where=''):
 
     c = db.cursor()
     if where:
-        print('SELECT %s from %s WHERE %s' % (items_str, table, where))
+        #print('SELECT %s from %s WHERE %s' % (items_str, table, where))
         c.execute('SELECT %s from %s WHERE %s' % (items_str, table, where))
     else:
-        print('SELECT %s from %s' % (items_str, table))
+        #print('SELECT %s from %s' % (items_str, table))
         c.execute('SELECT %s from %s' % (items_str, table))
 
     return c.fetchall()

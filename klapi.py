@@ -464,7 +464,8 @@ def post_machine():
         image_extra_userdata = image_extra_loader.userdata()
         # TODO: Support other features
 
-    extras.append(inf.defineNetwork())
+    if 'network_name' in settings.setttings():
+        extras.append(inf.defineNetworkInterface(setings.settings()['network_name']))
 
     extradevices = '\n'.join(extras)
 

@@ -175,7 +175,73 @@ class Virsh(object):
     def createVolume(self, pool, xml):
         return pool.createXML(xml)
 
-    def defineNetwork(self, network='default', driver='virtio', mac='', pci_address=''):
+    def defineNetwork(self, data):
+        if 'forward' in data:
+            forward_mode = data['forward']
+        else:
+            forward_mode = 'none'
+
+        if forward_mode in ['nat', 'bridge', 'route']:
+            data['forward'] = "<forward mode='%s' />\n" % (data['forward'])
+        else:
+            data['forward'] = ''
+
+        if forward_mode in ['nat', 'route', 'none']:
+            data['forward'] += "<bridge stp='on' delay='0'/>\n"
+        elif forward_mode == 'bridge' and 'bridge_name' in data:
+            data['forward'] += "<bridge name='%s'/>\n" % (data['brigde_name'])
+
+        if 'extra' not in data:
+            data['extra'] = ''
+
+        if forward_mode != 'bridge' and 'address' in data and 'netmask' in data:
+            data['extra'] += "<ip address='%(address)s' netmask='%(netmask)s'>\n" % (data)
+            if 'dhcp_start' in data and 'dhcp_end' in data:
+                data['extra'] += "<dhcp>\n<range start='%(dhcp_start)s' end='%(dhcp_end)s' />\n</dhcp>\n" % (data)
+            data['extra'] += '</ip>\n'
+
+        xml = """<network>
+    <name>%(name)s</name>
+    %(forward)s
+    %(extra)s
+</network>
+""" % (data)
+        return xml
+
+    def network(self, name):
+        try:
+            return self.conn.networkLookupByName(name)
+        except:
+            return None
+
+    def createNetwork(self, xml):
+        net = self.conn.networkDefineXML(xml)
+        if net:
+            net.create()
+
+        return net
+
+    def defineNatNetwork(self, name, ip, netmask='255.255.255.0', dhcp=True):
+        data = {
+            'name': name,
+            'address': ip,
+            'netmask': netmask,
+            'forward': 'nat',
+            'extra': ''
+        }
+        if dhcp:
+            parts = [int(x) for x in ip.split('.')]
+            if len(parts) != 4:
+                raise ValueError('Invalid IP for network: %s' % (ip))
+            parts[3] += 1
+            data['dhcp_start'] = '.'.join([str(x) for x in parts])
+            if parts[3] < 254:
+                parts[3] = 254
+            data['dhcp_end'] = '.'.join([str(x) for x in parts])
+
+        return self.defineNetwork(data)
+
+    def defineNetworkInterface(self, network, driver='virtio', mac='', pci_address=''):
         if mac:
             mac_str = "<mac address='%s'/>" % (mac)
         else:
