@@ -409,9 +409,7 @@ def post_machine():
     if 'mem' in request.json:
        res['memory'] = request.json['mem']
     if 'memory' in request.json:
-       res['memory'] = request.json['mem']
-    if 'mem' in request.json:
-       res['memory'] = request.json['mem']
+       res['memory'] = request.json['memory']
     if 'size' in request.json:
        res['size'] = request.json['size']
     if 'cpus' in request.json:

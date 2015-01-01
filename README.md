@@ -113,14 +113,64 @@ To list available base images, one of these is needed to setup a machine properl
 
     curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X GET http://localhost:5050/klapi/v0.1/image
 
+Result will be:
+
+    {
+      "images": [
+        "trusty-server-cloudimg-amd64-disk1"
+      ]
+    }
+
 If everything is in place you should be now able to create new machine:
 
     curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X POST -d '{"image": "trusty-server-cloudimg-amd64-disk1"}' http://localhost:5050/klapi/v0.1/machine
 
-You will be given information to access the machine. To get more information about it (replace ID at the end with given one):
+You will be given information to access the machine:
 
-    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -X GET http://localhost:5050/klapi/v0.1/machine/8f2f1ce0-cde0-4e9a-9561-cac6c2ada3f4
+    {
+      "id": "e4bc9c6f-ce67-448a-98f5-140c409937d2",
+      "password": "iEQ1xYH6",
+      "uri": "http://localhost:5050/klapi/v0.1/machine/e4bc9c6f-ce67-448a-98f5-140c409937d2"
+    }
+
+To get more information about it (replace ID at the end with given one):
+
+    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -X GET http://localhost:5050/klapi/v0.1/machine/e4bc9c6f-ce67-448a-98f5-140c409937d2
+
+Example details output:
+
+    {
+      "active": 1,
+      "address": "",
+      "base": "trusty-server-cloudimg-amd64-disk1",
+      "id": "e4bc9c6f-ce67-448a-98f5-140c409937d2",
+      "max-cpus": 1,
+      "max-memory": 262144,
+      "memory-stats": {
+        "actual": 262144,
+        "rss": 235412,
+        "swap_in": 0
+      },
+      "owner": "testuser"
+    }
 
 Destroying the machine is easy as:
 
-    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -X DELETE http://localhost:5050/klapi/v0.1/machine/8f2f1ce0-cde0-4e9a-9561-cac6c2ada3f4
+    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -X DELETE http://localhost:5050/klapi/v0.1/machine/e4bc9c6f-ce67-448a-98f5-140c409937d2
+
+
+### Options for machine
+
+Previously we gave only "image" as parameter for machine creation. It supports at least these values:
+
+| Key     | Default | Details     |
+|---------|---------|-------------|
+| memory  | 256 MB  | Value is given in KiB |
+| cpus    | 1       | Number of CPUs |
+| image   |         | Base image for VM |
+| cdrom   |         | CDROM image to attach |
+| size    |         | Disk image size |
+| name    | uuid4   | Machine name |
+
+
+These need to be given as JSON like "image" was given previously.
