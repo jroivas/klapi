@@ -54,12 +54,6 @@ def get_password(username):
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
 
-"""
-@app.route('/todo/api/v1.0/tasks', methods=['GET'])
-def get_tasks():
-    return jsonify({'tasks': tasks})
-"""
-
 @app.route('/' + api_prefix, methods=['GET'])
 def klapi():
     return jsonify({api_prefix: api_version})
@@ -154,10 +148,7 @@ def machine_del(machine_id):
     if dom.snapshotNum() > 0:
         flags |= VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
 
-    #adisks = disks(dom.XMLDesc(0))
-    #for disk in adisks:
-        #vol = self.get_volume_by_path(disk.get('path'))
-        #vol.delete(0)
+    #adisks = dom.XMLDesc(0)
     vol_provider = images.volume_provider(settings.settings())
     vols = get_device_items(dom, 'disk')
 
@@ -181,13 +172,6 @@ def machine_del(machine_id):
                     ok = False
             if not ok:
                 error_msg += '\nWARNING: Can\'t remove image: %s' % (vol)
-            """
-            try:
-                os.remove(vol)
-            except:
-                error_msg = '\nERROR: Can\'t remove image: %s' % (vol)
-                pass
-            """
 
 
     _db = db.connect(settings.settings())
@@ -358,63 +342,6 @@ def post_machine():
     data.update(image_extra_userdata)
 
     return jsonify(data)
-
-"""
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['GET'])
-def get_task(task_id):
-    task = filter(lambda t: t['id'] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
-    return jsonify({'task': task[0]})
-
-@app.route('/todo/api/v1.0/tasks', methods=['POST'])
-def create_task():
-    if not request.json or 'title' not in request.json:
-        abort(400)
-    task = {
-        'id': tasks[-1]['id'] + 1,
-        'title': request.json['title'],
-        'description': request.json.get('description', ""),
-        'done': False
-    }
-    tasks.append(task)
-    return jsonify({'task': task}), 201
-
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['PUT'])
-def update_task(task_id):
-    task = filter(lambda t: t['id'] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
-    if not request.json:
-        abort(400)
-    if 'title' in request.json and type(request.json['title']) != unicode:
-        abort(400)
-    if 'description' in request.json and type(request.json['description']) is not unicode:
-        abort(400)
-    if 'done' in request.json and type(request.json['done']) is not bool:
-        abort(400)
-    task[0]['title'] = request.json.get('title', task[0]['title'])
-    task[0]['description'] = request.json.get('description', task[0]['description'])
-    task[0]['done'] = request.json.get('done', task[0]['done'])
-    return jsonify({'task': task[0]})
-
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['DELETE'])
-def delete_task(task_id):
-    task = filter(lambda t: t['id'] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
-    tasks.remove(task[0])
-    return jsonify({'result': True})
-
-def make_public_task(task):
-    new_task = {}
-    for field in task:
-        if field == 'id':
-            new_task['uri'] = url_for('get_task', task_id=task['id'], _external=True)
-        else:
-            new_task[field] = task[field]
-    return new_task
-"""
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050, debug=True)
