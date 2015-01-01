@@ -50,6 +50,10 @@ def get_password(username):
         return str(item[0])
     return None
 
+@app.errorhandler(400)
+def not_found(error):
+    return make_response(jsonify({'error': 'Item does not exist'}), 400)
+
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
