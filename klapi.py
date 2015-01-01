@@ -11,6 +11,7 @@ from images import images
 from infra import infra
 import uuid
 import os
+
 try:
     import cElementTree as ElementTree
 except ImportError:
@@ -170,11 +171,14 @@ def machine_del(machine_id):
 
     for vol in vols:
         if not vol_provider.remove(os.path.basename(vol)):
+            error_msg += '\nWARNING: Can\'t remove image: %s' % (vol)
+            """
             try:
                 os.remove(vol)
             except:
                 error_msg = '\nERROR: Can\'t remove image: %s' % (vol)
                 pass
+            """
 
 
     _db = db.connect(settings.settings())
@@ -292,12 +296,16 @@ def post_machine():
     extras = []
     extra = ''
 
+    base = ''
     volume = get_volume_from_image(res['image'], str(uuid.uuid4()) + '_', resize=res['size'])
     if volume:
+        base = os.path.basename(res['image'])
         extras.append(inf.fileStorage(volume))
 
     cdrom = get_cdrom_image(res['cdrom'])
     if cdrom:
+        if not base:
+            base = os.path.basename(cdrom)
         extras.append(inf.cdromStorage(cdrom))
 
     image_extra_loader = None
@@ -308,6 +316,7 @@ def post_machine():
 
         image_extra_loader = image_extra_config(os.path.basename(item), res['name'])
 
+    image_extra_userdata = {}
     if image_extra_loader is not None:
         print ('Found image loader: %s' % (image_extra_loader.base()))
         extra_device = image_extra_loader.extraDeviceConfig(inf)
@@ -316,11 +325,12 @@ def post_machine():
         image_extra = image_extra_loader.extra()
         if image_extra:
             extra += image_extra
+
+        image_extra_userdata = image_extra_loader.userdata()
         # TODO: Support other features
 
     extras.append(inf.defineNetwork())
 
-    print (extras)
     extradevices = '\n'.join(extras)
 
     dom_xml = inf.customDomain(res['name'], res['cpus'], res['memory'], extradevices=extradevices, extra=extra)
@@ -330,15 +340,15 @@ def post_machine():
 
     _db = db.connect(settings.settings())
     # FIXME Put more accurate info
-    db.insert(_db, 'machines', [res['name'], volume, '', auth.username()])
+    db.insert(_db, 'machines', [res['name'], base, '', auth.username()])
 
-    return jsonify({
+    data = {
+        'uri': url_for('machine_id', machine_id=res['name'], _external=True),
         'id': res['name']
-    })
+    }
+    data.update(image_extra_userdata)
 
-    #_db = db.connect(settings.settings())
-    #res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
-    #return jsonify({'machines': res})
+    return jsonify(data)
 
 """
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['GET'])

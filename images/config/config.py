@@ -25,6 +25,9 @@ class Image(object):
     def bootOrder(self):
         return ''
 
+    def userdata(self):
+        return {}
+
 class ImageConfig(object):
     def __init__(self):
         self.basedir = os.path.dirname(os.path.realpath(__file__))

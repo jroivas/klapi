@@ -34,12 +34,24 @@ chpasswd: { expire: %s }
 ssh_pwauth: True
 """ % (password, expire)
         self.password = password
+        tempdir = tempfile.gettempdir() + '/klapi_ubuntu_cloud_image'
+        if not os.path.exists(tempdir):
+            try:
+                os.makedirs(tempdir)
+            except:
+                tempdir = ''
+
+        if tempdir:
+            try:
+                os.chmod(tempdir, 0777)
+            except:
+                pass
 
         fd = tempfile.NamedTemporaryFile(delete=False)
         fd.write(data)
         fd.close()
 
-        init_fd = tempfile.NamedTemporaryFile(delete=False)
+        init_fd = tempfile.NamedTemporaryFile(delete=False, dir=tempdir)
         self.temp_init = init_fd.name
 
         os.system('cloud-localds "%s" "%s"' % (init_fd.name, fd.name))
@@ -54,3 +66,8 @@ ssh_pwauth: True
            #return infra.cdromStorage(self.temp_init)
 
         return ""
+
+    def userdata(self):
+        return {
+            'password': self.password
+            }
