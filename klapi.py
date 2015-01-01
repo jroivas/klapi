@@ -129,6 +129,32 @@ def post_user():
 
     return jsonify(data)
 
+@app.route(api_url + '/user', methods=['DELETE'])
+@auth.login_required
+def delete_user():
+    if auth.username() != 'admin':
+        abort_msg(400, 'Access denied, admin needed!')
+
+    if not request.json:
+        abort_msg(400, 'Expected JSON parameters')
+
+    if 'user' not in request.json:
+        abort_msg(400, 'Value for "user" not defined')
+
+    user = request.json['user']
+    _db = db.connect(settings.settings())
+    res = db.select(_db, 'users', where='name=\'%s\'' % user)
+    if not res:
+        abort_msg(400, 'User \"%s\" does not exist' % user)
+
+    res = db.delete(_db, 'users', where='name=\'%s\'' % user)
+
+    data = {
+        'deleted': request.json['user'],
+    }
+
+    return jsonify(data)
+
 @app.route(api_url + '/user', methods=['PUT'])
 @auth.login_required
 def put_user():
@@ -197,10 +223,14 @@ def get_device_items(dom, item_type, item_name='source', element='file'):
 @app.route(api_url + '/machine/<string:machine_id>', methods=['GET'])
 @auth.login_required
 def machine_id(machine_id):
+    user = auth.username()
     _db = db.connect(settings.settings())
-    res = db.select(_db, 'machines', where='id=\'%s\'' % machine_id)
+    if user == 'admin':
+        res = db.select(_db, 'machines', where='id=\'%s\'' % machine_id)
+    else:
+        res = db.select(_db, 'machines', where='id=\'%s\' AND owner=\'%s\'' % (machine_id, user))
     if not res:
-        abort(400)
+        abort_msg(400, 'Machine "%s" not found' % (machine_id))
 
     res = res[0]
     inf = infra.provider(settings.settings())
@@ -232,10 +262,15 @@ def machine_id(machine_id):
 @app.route(api_url + '/machine/<string:machine_id>', methods=['DELETE'])
 @auth.login_required
 def machine_del(machine_id):
+    user = auth.username()
     _db = db.connect(settings.settings())
-    res = db.select(_db, 'machines', where='id=\'%s\'' % machine_id)
+    if user == 'admin':
+        res = db.select(_db, 'machines', where='id=\'%s\'' % machine_id)
+    else:
+        res = db.select(_db, 'machines', where='id=\'%s\' AND owner=\'%s\'' % (machine_id, user))
+
     if not res:
-        abort(400)
+        abort_msg(400, 'Machine "%s" not found' % (machine_id))
 
     res = res[0]
     inf = infra.provider(settings.settings())
@@ -358,7 +393,9 @@ def image_extra_config(name, init_name):
 @auth.login_required
 def post_machine():
     if not request.json:
-        abort(400)
+        abort_msg(400, 'Expected JSON input')
+
+    # TODO: quota per user
 
     res = {
         'memory': 256 * 1024, # FIXME some reasonable default
