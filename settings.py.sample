@@ -1,12 +1,15 @@
 def settings():
     return {
         'image': 'local',
-        'image_storage': '/store/cloud/images/iso',
         'volume': 'local',
-        'volume_storage': '/store/cloud/images/volume',
+
+        'image_storage': '/usr/local/klapi/images',
+        'volume_storage': '/usr/local/klapi/volumes',
         'volume_storage_name': 'klapi_storage',
+
         'infra': 'libvirt',
         'infra_connection': 'qemu:///system',
+
         'db': 'sqlite3',
         'db_table': 'klapi.db'
     }

@@ -1,6 +1,6 @@
 # KLAPI
 
-Keen cLoud API
+Kleine cLoud API
 
 
 ## Install
