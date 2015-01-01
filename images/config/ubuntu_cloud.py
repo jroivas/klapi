@@ -3,6 +3,7 @@ import os
 import random
 import string
 import tempfile
+import utils
 
 class Image(config.Image):
     def __init__(self, name):
@@ -23,10 +24,6 @@ class Image(config.Image):
             return True
 
         return False
-
-    def _generate_password(self, characters=8):
-        # Disabling 0 and O to prevent misreadings
-        return ''.join(random.choice(string.letters.replace('O','').replace('0','') + string.digits) for _ in range(characters))
 
     def _initCloud(self, password='ubuntu', expire='False'):
         data ="""#cloud-config
@@ -61,7 +58,7 @@ ssh_pwauth: True
         os.unlink(fd.name)
 
     def extraDeviceConfig(self, infra):
-        self._initCloud(password=self._generate_password())
+        self._initCloud(password=utils.generatePassword())
         if self.temp_init:
            #return infra.fileStorage(self.temp_init, format='raw', virtio=False)
            return infra.cdromStorage(self.temp_init)

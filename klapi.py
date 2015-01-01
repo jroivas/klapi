@@ -9,6 +9,7 @@ import settings
 from db import db
 from images import images
 from infra import infra
+import utils
 import uuid
 import os
 
@@ -36,6 +37,14 @@ def before_request():
     db.create(_db, 'machines', ['id', 'base', 'address', 'owner'])
     db.create(_db, 'images', ['name', 'url', 'type'])
     db.create(_db, 'users', ['name', 'pass', 'apikey'])
+    res = db.select(_db, 'users', ['pass'], 'name=\'%s\'' % ('admin'))
+    if res is None or not res:
+        admin_pass = utils.generatePassword(20)
+        db.insert(_db, 'users',
+            ['admin',
+            admin_pass,
+            utils.generateApiKey()])
+        print ('Password for admin: "%s", keep this in safe place!\n' % (admin_pass))
 
 @app.teardown_request
 def teardown_request(exception):
@@ -50,12 +59,15 @@ def get_password(username):
         return str(item[0])
     return None
 
+def abort_msg(code, msg):
+    abort(make_response(jsonify({'error': msg}), code))
+
 @app.errorhandler(400)
-def not_found(error):
+def not_found400(error):
     return make_response(jsonify({'error': 'Item does not exist'}), 400)
 
 @app.errorhandler(404)
-def not_found(error):
+def not_found404(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
 
 @app.route('/' + api_prefix, methods=['GET'])
@@ -66,11 +78,100 @@ def klapi():
 def klapi_version():
     return jsonify({api_prefix + '/' + api_version: ['ids']})
 
+@app.route(api_url + '/user', methods=['GET'])
+@auth.login_required
+def user():
+    data = {
+        'user': auth.username()
+    }
+    _db = db.connect(settings.settings())
+    res = db.select(_db, 'users', items=['apikey'], where='name=\'%s\'' % auth.username())
+    if res:
+        res = res[0]
+        data['api_key'] = res[0]
+
+    return jsonify(data)
+
+@app.route(api_url + '/user', methods=['POST'])
+@auth.login_required
+def post_user():
+    if auth.username() != 'admin':
+        abort_msg(400, 'Access denied, admin needed!')
+
+    if not request.json:
+        abort_msg(400, 'Expected JSON parameters')
+
+    if 'user' not in request.json:
+        abort_msg(400, 'Value for "user" not defined')
+    user = request.json['user']
+    passwd = ''
+    if 'password' in request.json:
+        passwd = request.json['password']
+
+    if user == 'admin':
+        abort_msg(400, 'Can\'t create admin')
+
+    _db = db.connect(settings.settings())
+    res = db.select(_db, 'users', where='name=\'%s\'' % user)
+    if res:
+        abort_msg(400, 'User \"%s\" already exists' % user)
+
+    if not passwd:
+        passwd = utils.generatePassword(20)
+
+    db.insert(_db, 'users',
+        [user, passwd, utils.generateApiKey()])
+
+    data = {
+        'user': request.json['user'],
+        'password': passwd
+    }
+
+    return jsonify(data)
+
+@app.route(api_url + '/user', methods=['PUT'])
+@auth.login_required
+def put_user():
+    if not request.json:
+        abort_msg(400, 'Expected JSON parameters')
+
+    if 'password' in request.json:
+        passwd = request.json['password']
+        if not passwd:
+            passwd = utils.generatePassword(20)
+
+        _db = db.connect(settings.settings())
+        db.update(_db, 'users', 'pass="%s"' % (passwd), where='name="%s"' % auth.username())
+        data = {
+            'user': auth.username(),
+            'password': passwd
+        }
+
+        return jsonify(data)
+
+    if 'api_key' in request.json:
+        apikey = utils.generateApiKey()
+        _db = db.connect(settings.settings())
+        db.update(_db, 'users', 'apikey="%s"' % (apikey), where='name="%s"' % auth.username())
+
+        data = {
+            'user': auth.username(),
+            'api_key': apikey
+        }
+
+        return jsonify(data)
+
+    abort_msg(400, 'Expected "password" or "api_key"')
+
 @app.route(api_url + '/machine', methods=['GET'])
 @auth.login_required
 def machine():
     _db = db.connect(settings.settings())
-    res = db.select(_db, 'machines', where='owner=\'%s\'' % auth.username())
+    user = auth.username()
+    if user == 'admin':
+        res = db.select(_db, 'machines')
+    else:
+        res = db.select(_db, 'machines', where='owner=\'%s\'' % user)
     items = [x[0] for x in res]
     return jsonify(
     {
