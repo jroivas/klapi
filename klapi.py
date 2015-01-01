@@ -11,6 +11,10 @@ from images import images
 from infra import infra
 import uuid
 import os
+try:
+    import cElementTree as ElementTree
+except ImportError:
+    from xml.etree import ElementTree
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -28,7 +32,7 @@ def unauthorized():
 @app.before_request
 def before_request():
     _db = db.connect(settings.settings())
-    db.create(_db, 'machines', ['id', 'name', 'address', 'owner'])
+    db.create(_db, 'machines', ['id', 'base', 'address', 'owner'])
     db.create(_db, 'images', ['name', 'url', 'type'])
     db.create(_db, 'users', ['name', 'pass', 'apikey'])
 
@@ -80,6 +84,16 @@ def machine():
             for x in items]
     })
 
+def get_device_items(dom, item_type, item_name='source', element='file'):
+    sources = set()
+    tree = ElementTree.fromstring(dom.XMLDesc(0))
+
+    for source in tree.findall('devices/%s/%s' % (item_type, item_name)):
+        file_item = source.get(element)
+        sources.update([file_item])
+
+    return list(sources)
+
 @app.route(api_url + '/machine/<string:machine_id>', methods=['GET'])
 @auth.login_required
 def machine_id(machine_id):
@@ -96,7 +110,7 @@ def machine_id(machine_id):
 
     data = {
         'id': res[0],
-        'name': res[1],
+        'base': res[1],
         'address': res[2],
         'active': dom.isActive(),
         'max-memory': dom.maxMemory(),
@@ -105,9 +119,11 @@ def machine_id(machine_id):
         #'info': dom.info(),
         #'cpus': dom.vcpus(),
         #'state': '%s' % dom.state(),
-        'state': '%s' % dir(dom),
+        #'state': '%s' % dir(dom),
         'owner': res[3]
     }
+    #data['vols'] = get_device_items(dom, 'disk')
+
     if dom.isActive():
         data['max-cpus'] = dom.maxVcpus()
         data['memory-stats'] = dom.memoryStats()
@@ -127,7 +143,48 @@ def machine_del(machine_id):
     if not dom or dom is None:
         abort(400)
 
-    dom.destroy()
+    if dom.isActive():
+        dom.destroy()
+
+    flags = 0
+    if dom.hasManagedSaveImage():
+        flags |= libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+
+    if dom.snapshotNum() > 0:
+        flags |= VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+
+    #adisks = disks(dom.XMLDesc(0))
+    #for disk in adisks:
+        #vol = self.get_volume_by_path(disk.get('path'))
+        #vol.delete(0)
+    vol_provider = images.volume_provider(settings.settings())
+    vols = get_device_items(dom, 'disk')
+
+    error_msg = ''
+    try:
+        dom.undefineFlags(flags)
+    except:
+        error_msg = 'ERROR: Undefining domain: %s' % macine_id
+        print (error_msg)
+
+
+    for vol in vols:
+        if not vol_provider.remove(os.path.basename(vol)):
+            try:
+                os.remove(vol)
+            except:
+                error_msg = '\nERROR: Can\'t remove image: %s' % (vol)
+                pass
+
+
+    _db = db.connect(settings.settings())
+    db.delete(_db, 'machines', where='id=\'%s\'' % machine_id)
+
+    data = {'removed': machine_id}
+    if error_msg:
+        data['error'] = error_msg
+
+    return jsonify(data)
 
 @app.route(api_url + '/image', methods=['GET'])
 @auth.login_required
@@ -273,7 +330,7 @@ def post_machine():
 
     _db = db.connect(settings.settings())
     # FIXME Put more accurate info
-    db.insert(_db, 'machines', [res['name'], res['name'], '', auth.username()])
+    db.insert(_db, 'machines', [res['name'], volume, '', auth.username()])
 
     return jsonify({
         'id': res['name']

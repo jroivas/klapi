@@ -43,6 +43,7 @@ ssh_pwauth: True
         self.temp_init = init_fd.name
 
         os.system('cloud-localds "%s" "%s"' % (init_fd.name, fd.name))
+        os.chmod(init_fd.name, 0666)
 
         os.unlink(fd.name)
 

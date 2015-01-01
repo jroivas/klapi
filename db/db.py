@@ -41,3 +41,9 @@ def insert(db, table, items):
     c.execute('INSERT INTO %s VALUES (%s)' % (table, items_str))
 
     db.commit()
+
+def delete(db, table, where):
+    c = db.cursor()
+    c.execute('DELETE FROM %s WHERE %s' % (table, where))
+
+    db.commit()
