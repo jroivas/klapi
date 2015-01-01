@@ -169,9 +169,18 @@ def machine_del(machine_id):
         print (error_msg)
 
 
+    # FIXME Clean up, and separate function/section
     for vol in vols:
         if not vol_provider.remove(os.path.basename(vol)):
-            error_msg += '\nWARNING: Can\'t remove image: %s' % (vol)
+            ok = False
+            if vol.startswith('/tmp'):
+                try:
+                    os.remove(vol)
+                    ok = True
+                except:
+                    ok = False
+            if not ok:
+                error_msg += '\nWARNING: Can\'t remove image: %s' % (vol)
             """
             try:
                 os.remove(vol)
