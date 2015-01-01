@@ -15,8 +15,14 @@ On Debian/Ubuntu first do:
     sudo apt-get install libvirt-bin
     sudo apt-get install python-libvirt
 
+Start the libvirt service (may be different depending of your system):
+
     sudo service libvirt-bin start
     sudo service libvirtd start
+
+In order to boot up Ubuntu images you need cloud utils:
+
+    sudo apt-get install "cloud-init-utils|cloud-utils"
 
 Recommended way to setup flask is to use virtualenv:
 
@@ -102,3 +108,11 @@ Now you can access klapi with this account:
       "api_key": "c0b9fda6-65dd-4ba7-b8fe-be7b45a28e6b",
       "user": "testuser"
     }
+
+To list available base images, one of these is needed to setup a machine properly:
+
+    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X GET http://localhost:5050/klapi/v0.1/image
+
+If everything is in place you should be now able to create new machine:
+
+    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X POST -d '{"image": "trusty-server-cloudimg-amd64-disk1"}' http://localhost:5050/klapi/v0.1/machine
