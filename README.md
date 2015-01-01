@@ -163,14 +163,12 @@ Destroying the machine is easy as:
 
 Previously we gave only "image" as parameter for machine creation. It supports at least these values:
 
-| Key     | Default | Details     |
-|---------|---------|-------------|
-| memory  | 256 MB  | Value is given in KiB |
-| cpus    | 1       | Number of CPUs |
-| image   |         | Base image for VM |
-| cdrom   |         | CDROM image to attach |
-| size    |         | Disk image size |
-| name    | uuid4   | Machine name |
+    memory   Value is given in KiB (default 256 MiB)
+    cpus     Number of CPUs (default 1)
+    image    Base image for VM
+    cdrom    CDROM image to attach
+    size     Disk image size
+    name     Machine name (default uuid4)
 
 
 These need to be given as JSON like "image" was given previously.
