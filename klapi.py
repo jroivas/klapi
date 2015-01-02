@@ -13,11 +13,6 @@ import utils
 import uuid
 import os
 
-try:
-    import cElementTree as ElementTree
-except ImportError:
-    from xml.etree import ElementTree
-
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
@@ -210,16 +205,6 @@ def machine():
             for x in items]
     })
 
-def get_device_items(dom, item_type, item_name='source', element='file'):
-    sources = set()
-    tree = ElementTree.fromstring(dom.XMLDesc(0))
-
-    for source in tree.findall('devices/%s/%s' % (item_type, item_name)):
-        file_item = source.get(element)
-        sources.update([file_item])
-
-    return list(sources)
-
 @app.route(api_url + '/machine/<string:machine_id>', methods=['GET'])
 @auth.login_required
 def machine_id(machine_id):
@@ -253,7 +238,7 @@ def machine_id(machine_id):
         'state': inf.domState(dom),
         'owner': res[3]
     }
-    #data['vols'] = get_device_items(dom, 'disk')
+    #data['vols'] = inf.deviceItems(dom, 'disk')
 
     if dom.isActive():
         data['max-cpus'] = dom.maxVcpus()
@@ -289,9 +274,8 @@ def machine_del(machine_id):
     if dom.snapshotNum() > 0:
         flags |= VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
 
-    #adisks = dom.XMLDesc(0)
     vol_provider = images.volume_provider(settings.settings())
-    vols = get_device_items(dom, 'disk')
+    vols = inf.deviceItems(dom, 'disk')
 
     error_msg = ''
     try:
@@ -300,20 +284,7 @@ def machine_del(machine_id):
         error_msg = 'ERROR: Undefining domain: %s' % macine_id
         print (error_msg)
 
-
-    # FIXME Clean up, and separate function/section
-    for vol in vols:
-        if not vol_provider.remove(os.path.basename(vol)):
-            ok = False
-            if vol.startswith('/tmp'):
-                try:
-                    os.remove(vol)
-                    ok = True
-                except:
-                    ok = False
-            if not ok:
-                error_msg += '\nWARNING: Can\'t remove image: %s' % (vol)
-
+    error_msg += vol_provider.removeVolumes(vols)
 
     _db = db.connect(settings.settings())
     db.delete(_db, 'machines', where='id=\'%s\'' % machine_id)
@@ -523,7 +494,6 @@ def post_machine():
     dom_res = dom.create()
 
     _db = db.connect(settings.settings())
-    # FIXME Put more accurate info
     db.insert(_db, 'machines', [res['name'], base, '', auth.username()])
 
     data = {

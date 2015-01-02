@@ -1,5 +1,6 @@
 import os
 import shutil
+import tempfile
 
 class LocalVolumeStorage(object):
     def __init__(self, location):
@@ -59,3 +60,19 @@ class LocalVolumeStorage(object):
             return True
 
         return False
+
+    def removeVolumes(self, vols):
+        error_msg = ''
+        for vol in vols:
+            if not self.remove(os.path.basename(vol)):
+                ok = False
+                if vol.startswith(tempfile.gettempdir()):
+                    try:
+                        os.remove(vol)
+                        ok = True
+                    except:
+                        ok = False
+                if not ok:
+                    error_msg += '\nWARNING: Can\'t remove image: %s' % (vol)
+
+        return error_msg

@@ -1,6 +1,10 @@
 import libvirt
 import os
 import string
+try:
+    import xml.etree.cElementTree as ElementTree
+except ImportError:
+    from xml.etree import ElementTree
 
 class Virsh(object):
     def __init__(self, connection):
@@ -274,3 +278,18 @@ class Virsh(object):
         #[state, maxmem, mem, ncpu, cputime] = dom.info()
         [state, _] = dom.state()
         return states.get(state, state)
+
+
+    def domItems(self, dom_xml, item_class, item_type, item_name, element):
+        sources = set()
+        tree = ElementTree.fromstring(dom_xml)
+
+        for source in tree.findall('%s/%s/%s' % (item_class, item_type, item_name)):
+            file_item = source.get(element)
+            sources.update([file_item])
+
+        return list(sources)
+
+    def deviceItems(self, dom, item_type, item_name='source', element='file'):
+        dom_xml = dom.XMLDesc(0)
+        return self.domItems(dom_xml, 'devices', item_type, item_name, element)
