@@ -2,6 +2,10 @@
 
 Kleine cLoud API
 
+Copyright (c)2014-2015 Jouni Roivas <jroivas@iki.fi>
+
+Released under MIT license. See LICENSE for more info.
+
 
 ## Install
 
