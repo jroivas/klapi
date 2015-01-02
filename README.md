@@ -46,11 +46,8 @@ If you take the default settings, create images and volumes folders:
     sudo mkdir -p /usr/local/klapi/volumes
     sudo chmod 777 /usr/local/klapi/volumes
 
-Next you need to download base images, let's take ubuntu cloud images from:
-https://cloud-images.ubuntu.com/
-
-For example trusty image:
-https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img
+Next you need to download base images, let's take [Ubuntu cloud images](https://cloud-images.ubuntu.com/).
+For example [trusty image](https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img).
 
 Place it under /usr/local/klapi/images:
 
@@ -172,3 +169,15 @@ Previously we gave only "image" as parameter for machine creation. It supports a
 
 
 These need to be given as JSON like "image" was given previously.
+For example this shows how to use almost all of those variables in a query:
+
+    curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X POST -d '{"image": "trusty-server-cloudimg-amd64-disk1", "memory": 512000, "cpus": 2, "size": "40G"}' http://localhost:5050/klapi/v0.1/machine
+
+
+## Network config
+
+By default setup.py script creates NAT bridge, and does not support different schemes.
+It's still possible to enable more complex setups, but for now those need to be manually created.
+Good resource for [setting virtual network](http://wiki.libvirt.org/page/VirtualNetworking).
+
+Just create a named network, and put the name to settings as 'network_name'.
