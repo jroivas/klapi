@@ -10,7 +10,6 @@ from db import db
 from images import images
 from infra import infra
 import utils
-import uuid
 import os
 
 app = Flask(__name__)
@@ -421,7 +420,7 @@ def post_machine():
     res = {
         'memory': 256 * 1024, # FIXME some reasonable default
         'cpus': 1,
-        'name': str(uuid.uuid4()),
+        'name': utils.generateID(),
         'net': '',
         'image': '',
         'size': '',
@@ -451,7 +450,7 @@ def post_machine():
     extra = ''
 
     base = ''
-    volume = get_volume_from_image(res['image'], str(uuid.uuid4()) + '_', resize=res['size'])
+    volume = get_volume_from_image(res['image'], utils.generateID() + '_', resize=res['size'])
     if volume:
         base = os.path.basename(res['image'])
         extras.append(inf.fileStorage(volume))
