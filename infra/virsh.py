@@ -260,3 +260,17 @@ class Virsh(object):
       %s
     </interface>
 """ % (network, mac_str, driver, pci_str)
+
+    def domState(self, dom):
+        states = {
+            libvirt.VIR_DOMAIN_NOSTATE: 'no state',
+            libvirt.VIR_DOMAIN_RUNNING: 'running',
+            libvirt.VIR_DOMAIN_BLOCKED: 'blocked',
+            libvirt.VIR_DOMAIN_PAUSED: 'paused',
+            libvirt.VIR_DOMAIN_SHUTDOWN: 'being shut down',
+            libvirt.VIR_DOMAIN_SHUTOFF: 'shut off',
+            libvirt.VIR_DOMAIN_CRASHED: 'crashed',
+        }
+        #[state, maxmem, mem, ncpu, cputime] = dom.info()
+        [state, _] = dom.state()
+        return states.get(state, state)

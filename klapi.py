@@ -250,6 +250,7 @@ def machine_id(machine_id):
         #'cpus': dom.vcpus(),
         #'state': '%s' % dom.state(),
         #'state': '%s' % dir(dom),
+        'state': inf.domState(dom),
         'owner': res[3]
     }
     #data['vols'] = get_device_items(dom, 'disk')
@@ -388,6 +389,55 @@ def image_extra_config(name, init_name):
         return None
 
     return image_class(init_name)
+
+@app.route(api_url + '/machine/<string:machine_id>', methods=['PUT'])
+@auth.login_required
+def put_machine(machine_id):
+    if not request.json:
+        abort_msg(400, 'Expected JSON input')
+
+    user = auth.username()
+    _db = db.connect(settings.settings())
+    if user == 'admin':
+        res = db.select(_db, 'machines', where='id=\'%s\'' % machine_id)
+    else:
+        res = db.select(_db, 'machines', where='id=\'%s\' AND owner=\'%s\'' % (machine_id, user))
+    if not res:
+        abort_msg(400, 'Machine "%s" not found' % (machine_id))
+
+    res = res[0]
+    inf = infra.provider(settings.settings())
+    dom = inf.getDomain(res[0])
+    if not dom or dom is None:
+        abort_msg(400, 'Machine "%s" not in backedn' % (machine_id))
+
+    if 'operation' not in request.json:
+        abort_msg(400, 'No operation defined')
+
+    data = {}
+    if request.json['operation'] == 'reboot':
+        data['result'] = dom.reboot()
+    elif request.json['operation'] == 'reset':
+        data['result'] = dom.reset()
+    elif request.json['operation'] == 'shutdown':
+        data['result'] = dom.shutdown()
+    elif request.json['operation'] == 'start':
+        st = dom.state()[0]
+        if st in [0,4,5,6]:
+            data['result'] = dom.create()
+        else:
+            abort_msg(400, 'Can\'t start, invalid state: %s' % (inf.domState(dom)))
+    elif request.json['operation'] == 'forceoff':
+        data['result'] = dom.destroy()
+    elif request.json['operation'] == 'suspend':
+        data['result'] = dom.suspend()
+    elif request.json['operation'] == 'resume':
+        data['result'] = dom.resume()
+    else:
+        abort_msg(400, 'Unknown operation: %s' % (request.json['operation']))
+
+    data[request.json['operation']] = machine_id
+    return jsonify(data)
 
 @app.route(api_url + '/machine', methods=['POST'])
 @auth.login_required
