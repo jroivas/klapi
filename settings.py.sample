@@ -1,5 +1,7 @@
 def settings():
     return {
+        'server_port': 5050,
+
         'image': 'local',
         'volume': 'local',
 

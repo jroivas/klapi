@@ -504,4 +504,8 @@ def post_machine():
     return jsonify(data)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5050, debug=True)
+    port = 5050
+    sets = settings.settings()
+    if 'server_port' in sets:
+        port = int(sets['server_port'])
+    app.run(host='0.0.0.0', port=port, debug=True)
