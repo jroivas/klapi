@@ -65,10 +65,10 @@ class KlapiServer(threading.Thread):
 
             # Work as a simple proxy
             if server in sockets:
-                data = server.recv_multipart
+                data = server.recv_multipart()
                 backend.send_multipart(data)
             if backend in sockets:
-                data = backend.recv_multipart
+                data = backend.recv_multipart()
                 server.send_multipart(data)
 
     def run(self):
