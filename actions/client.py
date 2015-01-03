@@ -2,7 +2,6 @@ import zmq
 import sys
 import threading
 import utils
-import time
 
 class ActionClient(threading.Thread):
     def __init__(self, sets):
@@ -17,20 +16,21 @@ class ActionClient(threading.Thread):
         self.queue = []
         self.callbacks = {}
         self.queue_mutex = threading.Lock()
-        threading.Thread.__init__ (self)
+        threading.Thread.__init__(self)
 
     def createConnection(self):
         context = zmq.Context()
 
         socket = context.socket(zmq.DEALER)
 
-        identity = u'client-%s' % self.id
+        identity = u'client-%s' % (self.id)
         socket.identity = identity.encode('ascii')
         socket.connect('tcp://%s:%s' % (self.host, self.port))
 
         return (context, socket)
 
     def getResults(self, poll, socket):
+        # TODO Configurable poll time
         sockets = dict(poll.poll(1000))
         if socket in sockets:
             res = socket.recv_json()
@@ -45,7 +45,6 @@ class ActionClient(threading.Thread):
         while self.running:
             if not self.queue:
                 self.getResults(poll, socket)
-                time.sleep(0.01)
                 continue
 
             with self.queue_mutex:
@@ -56,6 +55,7 @@ class ActionClient(threading.Thread):
 
             socket.send_json(data)
 
+            # It's good to handle results here as well
             self.getResults(poll, socket)
 
     def run(self):

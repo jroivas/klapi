@@ -7,7 +7,7 @@ import settings
 
 class KlapiServer(threading.Thread):
     def __init__(self, sets):
-        threading.Thread.__init__ (self)
+        threading.Thread.__init__(self)
 
         self.port = 5555
         self.backend_name = 'klapi_backend'
@@ -78,6 +78,8 @@ class KlapiServer(threading.Thread):
         self.serve(server, backend)
 
         self._deinit_connection(context, server, backend)
+        for worker in self.workers:
+            worker.join()
 
 class KlapiWorker(threading.Thread):
     def __init__(self, context, backend_name):
