@@ -8,8 +8,11 @@ class ActionClient(threading.Thread):
     def __init__(self, sets):
         self.id = utils.generateID()
         self.port = 5555
+        self.host = 'localhost'
         if 'backend_port' in sets:
             self.port = sets['backend_port']
+        if 'backend_host' in sets:
+            self.host = sets['backend_host']
         self.running = False
         self.queue = []
         self.callbacks = {}
@@ -23,7 +26,7 @@ class ActionClient(threading.Thread):
 
         identity = u'client-%s' % self.id
         socket.identity = identity.encode('ascii')
-        socket.connect('tcp://localhost:%s' % (self.port))
+        socket.connect('tcp://%s:%s' % (self.host, self.port))
 
         return (context, socket)
 
