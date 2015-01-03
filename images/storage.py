@@ -37,7 +37,6 @@ class LocalVolumeStorage(object):
         os.system('qemu-img create -f qcow2 -b "%s" "%s"' % (destname + '.orig', destname))
         """
 
-        #shutil.copyfile(source, destname)
         return destname
 
     def customize(self, image, source):

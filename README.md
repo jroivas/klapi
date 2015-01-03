@@ -9,8 +9,8 @@ Released under MIT license. See LICENSE for more info.
 
 ## Install
 
-You need flask, qemu-img, libvirt, and python-libvirt (libvirt-python)
-to get minimum setup working.
+You need flask, pyzmq (ZeroMQ), qemu-img, libvirt,
+and python-libvirt (libvirt-python) to get minimum setup working.
 
 On Debian/Ubuntu first do:
 
@@ -18,23 +18,25 @@ On Debian/Ubuntu first do:
     sudo apt-get install qemu-utils
     sudo apt-get install libvirt-bin
     sudo apt-get install python-libvirt
+    sudo apt-get install python-dev
 
 Start the libvirt service (may be different depending of your system):
 
     sudo service libvirt-bin start
     sudo service libvirtd start
 
-In order to boot up Ubuntu images you need cloud utils:
+In order to setup Ubuntu cloud images you need cloud utils:
 
     sudo apt-get install "cloud-init-utils|cloud-utils"
 
-Recommended way to setup flask is to use virtualenv:
+Recommended way to setup flask and other Python dependencies by using virtualenv:
 
     sudo apt-get install virtualenv
     virtualenv --system-site-packages flask
     flask/bin/pip install flask
     flask/bin/pip install flask-httpauth
     flask/bin/pip install libvirt-python
+    flask/bin/pip install pyzmq
 
 
 ## Settings
