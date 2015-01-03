@@ -89,7 +89,12 @@ Start the application:
 
     ./klapi.py
 
-Fetch main page:
+You need to start the backend as well:
+
+    ./klapi-backend.py
+
+Start order of appliction and backend does not matter. They utilize ZeroMQ (0MQ)
+for communication. Next one should be able to fetch the main page:
 
     curl http://localhost:5050/klapi
 
@@ -128,11 +133,10 @@ If everything is in place you should be now able to create new machine:
 
     curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X POST -d '{"image": "trusty-server-cloudimg-amd64-disk1"}' http://localhost:5050/klapi/v0.1/machine
 
-You will be given information to access the machine:
+You will be given id to the machine:
 
     {
       "id": "e4bc9c6f-ce67-448a-98f5-140c409937d2",
-      "password": "iEQ1xYH6",
       "uri": "http://localhost:5050/klapi/v0.1/machine/e4bc9c6f-ce67-448a-98f5-140c409937d2"
     }
 
@@ -146,6 +150,9 @@ Example details output:
       "active": 1,
       "address": "",
       "base": "trusty-server-cloudimg-amd64-disk1",
+      "config": {
+          "password": "iEQ1xYH6",
+      },
       "id": "e4bc9c6f-ce67-448a-98f5-140c409937d2",
       "max-cpus": 1,
       "max-memory": 262144,
