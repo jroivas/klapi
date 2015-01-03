@@ -112,7 +112,6 @@ class KlapiWorker(threading.Thread):
         worker.close()
 
     def handle(self, msg):
-        # TODO: Handle dict message, send back as dict
         if 'createMachine' in msg:
             self.createMachine(msg['createMachine'])
         return msg

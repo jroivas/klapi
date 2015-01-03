@@ -117,11 +117,11 @@ Now you can access klapi with this account:
       "user": "testuser"
     }
 
-To list available base images, one of these is needed to setup a machine properly:
+At least one image is needed to setup a machine properly. To list available base images:
 
     curl -u testuser:4RkSUsNYdM4fdDoCjhJK -H "Content-Type: application/json" -X GET http://localhost:5050/klapi/v0.1/image
 
-Result will be:
+Result will be (if you downloaded trusty cloud image):
 
     {
       "images": [
@@ -161,7 +161,8 @@ Example details output:
         "rss": 235412,
         "swap_in": 0
       },
-      "owner": "testuser"
+      "owner": "testuser",
+      "state": "running"
     }
 
 Destroying the machine is easy as:

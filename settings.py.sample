@@ -3,6 +3,7 @@ def settings():
         'server_port': 5050,
         'backend_port': 5551,
         'backend_name': 'klapi_backend',
+        'backend_host': 'localhost',
         'backend_workers': 10,
 
         'image': 'local',
