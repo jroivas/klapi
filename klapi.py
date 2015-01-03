@@ -9,8 +9,11 @@ import settings
 from db import db
 from images import images
 from infra import infra
+from actions import actions
 import utils
 import os
+import setup
+import json
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -27,10 +30,8 @@ def unauthorized():
 
 @app.before_request
 def before_request():
+    setup.create_db()
     _db = db.connect(settings.settings())
-    db.create(_db, 'machines', ['id', 'base', 'address', 'owner'])
-    db.create(_db, 'images', ['name', 'url', 'type'])
-    db.create(_db, 'users', ['name', 'pass', 'apikey'])
     res = db.select(_db, 'users', ['pass'], 'name=\'%s\'' % ('admin'))
     if res is None or not res:
         admin_pass = utils.generatePassword(20)
@@ -226,6 +227,7 @@ def machine_id(machine_id):
         'id': res[0],
         'base': res[1],
         'address': res[2],
+        'config': json.loads(res[4]),
         'active': dom.isActive(),
         'max-memory': dom.maxMemory(),
         #'max-cpus': dom.maxVcpus(),
@@ -334,32 +336,6 @@ def get_image(img_id):
     with open(loc, 'r') as fd:
         return fd.read()
 
-def get_volume_from_image(image, prefix='', resize=''):
-    img = images.provider(settings.settings())
-    vol = images.volume_provider(settings.settings())
-
-    try:
-        src_img = img.get(image)
-        return vol.copyFrom(src_img, prefix=prefix, resize=resize)
-    except Exception as e:
-        print ('ERROR: %s' % (e))
-        return ''
-
-def get_cdrom_image(image):
-    img = images.provider(settings.settings())
-    try:
-        return img.get(image)
-    except:
-        return ''
-
-def image_extra_config(name, init_name):
-    loader = images.config.ImageConfig()
-    image_class = loader.search(name)
-    if image_class is None:
-        return None
-
-    return image_class(init_name)
-
 @app.route(api_url + '/machine/<string:machine_id>', methods=['PUT'])
 @auth.login_required
 def put_machine(machine_id):
@@ -444,62 +420,16 @@ def post_machine():
     if 'name' in request.json:
        res['name'] = request.json['name']
 
-    inf = infra.provider(settings.settings())
-
-    extras = []
-    extra = ''
-
-    base = ''
-    volume = get_volume_from_image(res['image'], utils.generateID() + '_', resize=res['size'])
-    if volume:
-        base = os.path.basename(res['image'])
-        extras.append(inf.fileStorage(volume))
-
-    cdrom = get_cdrom_image(res['cdrom'])
-    if cdrom:
-        if not base:
-            base = os.path.basename(cdrom)
-        extras.append(inf.cdromStorage(cdrom))
-
-    image_extra_loader = None
-    if volume or cdrom:
-        item = cdrom
-        if volume:
-            item = volume
-
-        image_extra_loader = image_extra_config(os.path.basename(item), res['name'])
-
-    image_extra_userdata = {}
-    if image_extra_loader is not None:
-        print ('Found image loader: %s' % (image_extra_loader.base()))
-        extra_device = image_extra_loader.extraDeviceConfig(inf)
-        if extra_device:
-            extras.append(extra_device)
-        image_extra = image_extra_loader.extra()
-        if image_extra:
-            extra += image_extra
-
-        image_extra_userdata = image_extra_loader.userdata()
-        # TODO: Support other features
-
-    if 'network_name' in settings.settings():
-        extras.append(inf.defineNetworkInterface(settings.settings()['network_name']))
-
-    extradevices = '\n'.join(extras)
-
-    dom_xml = inf.customDomain(res['name'], res['cpus'], res['memory'], extradevices=extradevices, extra=extra)
-    dom = inf.createDomain(dom_xml)
-
-    dom_res = dom.create()
-
     _db = db.connect(settings.settings())
-    db.insert(_db, 'machines', [res['name'], base, '', auth.username()])
+    db.insert(_db, 'machines', [res['name'], '', '', auth.username(), ''])
+
+    act = actions.provider(settings.settings())
+    act.sendActionNow({'createMachine': res}, None)
 
     data = {
         'uri': url_for('machine_id', machine_id=res['name'], _external=True),
         'id': res['name']
     }
-    data.update(image_extra_userdata)
 
     return jsonify(data)
 

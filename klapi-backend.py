@@ -4,6 +4,11 @@ import sys
 import threading
 import json
 import settings
+import utils
+import os
+from db import db
+from images import images
+from infra import infra
 
 class KlapiServer(threading.Thread):
     def __init__(self, sets):
@@ -108,7 +113,93 @@ class KlapiWorker(threading.Thread):
 
     def handle(self, msg):
         # TODO: Handle dict message, send back as dict
+        if 'createMachine' in msg:
+            self.createMachine(msg['createMachine'])
         return msg
+
+    def createMachine(self, res):
+        extras = []
+        extra = ''
+
+        base = ''
+
+        inf = infra.provider(settings.settings())
+
+        volume = self.get_volume_from_image(res['image'], utils.generateID() + '_', resize=res['size'])
+        if volume:
+            base = os.path.basename(res['image'])
+            extras.append(inf.fileStorage(volume))
+
+        cdrom = self.get_cdrom_image(res['cdrom'])
+        if cdrom:
+            if not base:
+                base = os.path.basename(cdrom)
+            extras.append(inf.cdromStorage(cdrom))
+
+        image_extra_loader = None
+        if volume or cdrom:
+            item = cdrom
+            if volume:
+                item = volume
+
+            image_extra_loader = self.image_extra_config(os.path.basename(item), res['name'])
+
+        image_extra_userdata = {}
+        if image_extra_loader is not None:
+            print ('Found image loader: %s' % (image_extra_loader.base()))
+            extra_device = image_extra_loader.extraDeviceConfig(inf)
+            if extra_device:
+                extras.append(extra_device)
+            image_extra = image_extra_loader.extra()
+            if image_extra:
+                extra += image_extra
+
+            image_extra_userdata = image_extra_loader.userdata()
+            # TODO: Support other features
+
+
+        if 'network_name' in settings.settings():
+            extras.append(inf.defineNetworkInterface(settings.settings()['network_name']))
+
+        extradevices = '\n'.join(extras)
+
+        dom_xml = inf.customDomain(res['name'], res['cpus'], res['memory'], extradevices=extradevices, extra=extra)
+        dom = inf.createDomain(dom_xml)
+
+        dom_res = dom.create()
+
+        _db = db.connect(settings.settings())
+        config_data = json.dumps(image_extra_userdata)
+        config_data = config_data.replace('\'', '\\\'')
+        db.update(_db, 'machines',
+            'config=\'%s\'' % (config_data),
+            where='id="%s"' % (res['name']))
+
+    def get_volume_from_image(self, image, prefix='', resize=''):
+        img = images.provider(settings.settings())
+        vol = images.volume_provider(settings.settings())
+
+        try:
+            src_img = img.get(image)
+            return vol.copyFrom(src_img, prefix=prefix, resize=resize)
+        except Exception as e:
+            print ('ERROR: %s' % (e))
+            return ''
+
+    def get_cdrom_image(self, image):
+        img = images.provider(settings.settings())
+        try:
+            return img.get(image)
+        except:
+            return ''
+
+    def image_extra_config(self, name, init_name):
+        loader = images.config.ImageConfig()
+        image_class = loader.search(name)
+        if image_class is None:
+            return None
+
+        return image_class(init_name)
 
 if __name__ == '__main__':
     server = KlapiServer(settings.settings())

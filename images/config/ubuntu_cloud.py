@@ -60,7 +60,6 @@ ssh_pwauth: True
     def extraDeviceConfig(self, infra):
         self._initCloud(password=utils.generatePassword())
         if self.temp_init:
-           #return infra.fileStorage(self.temp_init, format='raw', virtio=False)
            return infra.cdromStorage(self.temp_init)
 
         return ""

@@ -8,7 +8,7 @@ from infra import infra
 
 def create_db():
     _db = db.connect(settings.settings())
-    db.create(_db, 'machines', ['id', 'base', 'address', 'owner'])
+    db.create(_db, 'machines', ['id', 'base', 'address', 'owner', 'config'])
     db.create(_db, 'images', ['name', 'url', 'type'])
     db.create(_db, 'users', ['name', 'pass', 'apikey'])
 

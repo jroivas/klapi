@@ -10,7 +10,7 @@ class Virsh(object):
     def __init__(self, connection):
         self.connection = connection
         self.conn = None
-        self.connect() # FIXME Do we want autoconnect?
+        self.connect()
         self.drive_letters = list(string.lowercase)
 
     def connect(self):
@@ -275,7 +275,6 @@ class Virsh(object):
             libvirt.VIR_DOMAIN_SHUTOFF: 'shut off',
             libvirt.VIR_DOMAIN_CRASHED: 'crashed',
         }
-        #[state, maxmem, mem, ncpu, cputime] = dom.info()
         [state, _] = dom.state()
         return states.get(state, state)
 

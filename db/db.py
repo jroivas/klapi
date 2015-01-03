@@ -50,6 +50,7 @@ def delete(db, table, where):
 
 def update(db, table, items, where):
     c = db.cursor()
+    print('UPDATE %s SET %s WHERE %s' % (table, items, where))
     c.execute('UPDATE %s SET %s WHERE %s' % (table, items, where))
 
     db.commit()

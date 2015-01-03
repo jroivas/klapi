@@ -36,11 +36,12 @@ class ActionClient(threading.Thread):
             res = socket.recv_json()
             if 'id' in res:
                 if res['id'] in self.callbacks:
-                    with self.queue_mutex:
-                        self.callbacks[res['id']](res)
-                        del self.callbacks[res['id']]
+                    if self.callbacks[res['id']] is not None:
+                        with self.queue_mutex:
+                            self.callbacks[res['id']](res)
+                    del self.callbacks[res['id']]
 
-    def handle(self, poll, socket):
+    def handle(self, poll, socket, loop=True):
         self.running = True
         while self.running:
             if not self.queue:
@@ -58,6 +59,9 @@ class ActionClient(threading.Thread):
             # It's good to handle results here as well
             self.getResults(poll, socket)
 
+            if not loop:
+                break
+
     def run(self):
         (context, socket) = self.createConnection()
 
@@ -65,6 +69,20 @@ class ActionClient(threading.Thread):
         poll.register(socket, zmq.POLLIN)
 
         self.handle(poll, socket)
+
+        socket.close()
+        context.term()
+
+    def sendActionNow(self, action, callback):
+        with self.queue_mutex:
+            self.queue.append((action, callback))
+
+        (context, socket) = self.createConnection()
+
+        poll = zmq.Poller()
+        poll.register(socket, zmq.POLLIN)
+
+        self.handle(poll, socket, loop=False)
 
         socket.close()
         context.term()
